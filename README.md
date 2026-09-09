@@ -23,6 +23,28 @@ the sensitivity grid, account deletion, and any cloud deployment. Password reset
 except delivery — the reset link is logged server-side rather than emailed (see
 `backend/app/services/email.py`).
 
+## Quick Start (local use, Windows)
+
+If you just want to run the app on your own machine — not develop it — this is the fastest path.
+Requires [Prerequisites](#prerequisites) below to already be installed.
+
+```powershell
+.\run.ps1
+```
+
+The first run sets up the backend virtual environment and builds the frontend (a few minutes);
+every run after that starts in a couple of seconds. Then open **http://localhost:8000** — that's
+the whole app, frontend and API together on one port. Press `Ctrl+C` in that terminal to stop it.
+
+Your scenarios persist between runs in `backend/data/planner.db`, so closing the terminal and
+running `.\run.ps1` again later picks up right where you left off. If you change any source code,
+rerun `npm run build` in `frontend/` (see [Production build](#production-build)) before the next
+`.\run.ps1`, so the served app picks up the change.
+
+Note: double-clicking `run.ps1` in File Explorer does **not** run it — Windows opens `.ps1` files
+in an editor by default. Run it from a PowerShell prompt as above, or right-click the file and
+choose "Run with PowerShell".
+
 ## Prerequisites
 
 - Python 3.11+ (developed against 3.14)
