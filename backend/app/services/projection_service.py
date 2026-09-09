@@ -162,12 +162,42 @@ def scenario_to_engine_input(scenario: models.Scenario) -> eng.ScenarioInput:
     )
 
 
+# ScenarioInput fields the engine does Decimal arithmetic on. `ProjectionOverrides.inputs` is a
+# plain, un-typed dict (FastAPI hands it straight from JSON), and the frontend sends money/rate
+# fields as strings (see frontend/src/types/index.ts's comment on why) — exactly like every other
+# money/rate field on the wire. Without this coercion, `dataclasses.replace()` happily accepts the
+# raw string and the engine blows up on its first `Decimal + str` (or `str * Decimal`) operation.
+_DECIMAL_INPUT_FIELDS = {
+    "current_corpus",
+    "annual_expense_today",
+    "expense_inflation",
+    "pre_retirement_return",
+    "post_retirement_return",
+    "monthly_contribution",
+    "contribution_stepup",
+    "medical_expense_today",
+    "medical_inflation",
+    "post_retirement_expense_factor",
+}
+
+
+def _coerce_scalar_overrides(updates: dict) -> dict:
+    coerced = {}
+    for key, value in updates.items():
+        if key in _DECIMAL_INPUT_FIELDS and value is not None and not isinstance(value, Decimal):
+            coerced[key] = Decimal(str(value))
+        else:
+            coerced[key] = value
+    return coerced
+
+
 def apply_overrides(base: eng.ScenarioInput, overrides: ProjectionOverrides) -> eng.ScenarioInput:
     """Merge a transient what-if body (§8.3's slider strip) onto a base engine input. Only
     scalar fields present in `overrides.inputs` are changed; dependents/goals/income_streams are
     replaced wholesale when provided, otherwise left as-is.
     """
     scalar_updates = {k: v for k, v in overrides.inputs.items() if hasattr(base, k)}
+    scalar_updates = _coerce_scalar_overrides(scalar_updates)
     merged = replace(base, **scalar_updates) if scalar_updates else base
     if overrides.dependents is not None:
         merged = replace(merged, dependents=[_dependent_in_to_engine(d) for d in overrides.dependents])

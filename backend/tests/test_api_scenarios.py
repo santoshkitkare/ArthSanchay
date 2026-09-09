@@ -136,6 +136,40 @@ def test_project_with_transient_overrides_does_not_persist(auth_client):
     assert saved.json()["inputs"]["retirement_age"] == 43  # unchanged on disk
 
 
+def test_project_with_decimal_override_fields_does_not_500(auth_client):
+    """Regression test: the frontend's what-if slider strip (§8.3) sends money/rate fields as
+    JSON strings (matching how ScenarioInputs.* are typed on the wire everywhere else), but
+    `ProjectionOverrides.inputs` is an untyped dict, so those strings were flowing straight into
+    `dataclasses.replace()` on the engine's Decimal-typed fields — the engine's first
+    `Decimal + str` blew up with a 500 the instant any of these was overridden. Found by driving
+    the real app end-to-end with the what-if sliders, not by a unit test with only int overrides.
+    """
+    created = auth_client.post("/api/scenarios", json={"name": "Base case"})
+    scenario_id = created.json()["id"]
+
+    resp = auth_client.post(
+        f"/api/scenarios/{scenario_id}/project",
+        json={
+            "inputs": {
+                "retirement_age": 60,
+                "monthly_contribution": "5000",
+                "pre_retirement_return": "0.11",
+                "post_retirement_return": "0.07",
+                "expense_inflation": "0.06",
+                "current_corpus": "20000000",
+                "medical_expense_today": "50000",
+                "medical_inflation": "0.09",
+                "contribution_stepup": "0.05",
+                "post_retirement_expense_factor": "0.9",
+            }
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["retirement_age"] == 60
+    assert body["summary"]["verdict"] in ("sustainable", "shortfall")
+
+
 def test_solve_required_corpus(auth_client):
     created = auth_client.post("/api/scenarios", json={"name": "Base case"})
     scenario_id = created.json()["id"]
