@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+backend/.env
+*.env.local
+
+# SQLite data
+backend/data/
+*.db
+*.db-journal
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Built SPA copied into backend for deploy
+backend/app/static/*
+!backend/app/static/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+*.tsbuildinfo
