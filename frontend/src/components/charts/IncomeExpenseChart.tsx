@@ -4,8 +4,13 @@ import { aggregateToAnnual } from "../../lib/aggregate";
 import { formatINRShort } from "../../lib/money";
 import type { ProjectionResult } from "../../types";
 
-/** FR-VIZ-3: contributions/income above the axis, expense categories stacked below, so the
- * crossover from accumulation to drawdown is visible at a glance.
+/** FR-VIZ-3: every category stacks upward from a zero baseline at the bottom, colour-coded by
+ * category (contributions/income vs. each expense category) so the total height at any age reads
+ * as "how much moved that year" and the segments read as "on what". An earlier version put
+ * expenses below the axis and income above it; with income/contributions at zero (the common
+ * case — the workbook itself has none), that left the zero baseline pinned to the top of the
+ * chart with every bar hanging downward from it, which read as upside down. Colour still
+ * distinguishes inflow from outflow categories via the legend.
  */
 export function IncomeExpenseChart({ result }: { result: ProjectionResult }) {
   const points = aggregateToAnnual(result.rows);
@@ -27,31 +32,31 @@ export function IncomeExpenseChart({ result }: { result: ProjectionResult }) {
       },
       {
         label: "Household & medical",
-        data: points.map((p) => -(p.household + p.medical)),
+        data: points.map((p) => p.household + p.medical),
         backgroundColor: "#2563eb",
         stack: "flow",
       },
       {
         label: "School fees",
-        data: points.map((p) => -p.school),
+        data: points.map((p) => p.school),
         backgroundColor: "#f59e0b",
         stack: "flow",
       },
       {
         label: "Graduation",
-        data: points.map((p) => -p.graduation),
+        data: points.map((p) => p.graduation),
         backgroundColor: "#14b8a6",
         stack: "flow",
       },
       {
         label: "Marriage",
-        data: points.map((p) => -p.marriage),
+        data: points.map((p) => p.marriage),
         backgroundColor: "#ec4899",
         stack: "flow",
       },
       {
         label: "Other goals",
-        data: points.map((p) => -p.custom),
+        data: points.map((p) => p.custom),
         backgroundColor: "#6b7280",
         stack: "flow",
       },
@@ -68,7 +73,7 @@ export function IncomeExpenseChart({ result }: { result: ProjectionResult }) {
         callbacks: {
           title: (items: { label: string }[]) => `Age ${items[0].label}`,
           label: (item: { dataset: { label?: string }; parsed: { y: number | null } }) =>
-            `${item.dataset.label}: ${formatINRShort(Math.abs(item.parsed.y ?? 0))}`,
+            `${item.dataset.label}: ${formatINRShort(item.parsed.y ?? 0)}`,
         },
       },
     },
@@ -76,8 +81,9 @@ export function IncomeExpenseChart({ result }: { result: ProjectionResult }) {
       x: { stacked: true, title: { display: true, text: "Age" } },
       y: {
         stacked: true,
+        beginAtZero: true,
         title: { display: true, text: "Money in / money out" },
-        ticks: { callback: (v: string | number) => formatINRShort(Math.abs(Number(v))) },
+        ticks: { callback: (v: string | number) => formatINRShort(Number(v)) },
       },
     },
   };
